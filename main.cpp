@@ -4,11 +4,11 @@
 #include <vector>
 
 const int NUM_THREADS = 4;
-const int NUM_OPERATIONS = 1000;
+const int NUM_OPERATIONS = 1000000;
 
 void enqueue_test(LockFreeList<int>& list, int index) {
     for (int i = 0; i < NUM_OPERATIONS; ++i) {
-        list.Enqueue(index*1000 + i);
+        list.Enqueue(index*1000000 + i);
     }
     std::cout<<"end eq"<< std::endl;
 }
@@ -36,7 +36,7 @@ int main() {
         t.join();
     }
     std::cout << "all eq end " << std::endl;
-
+//    getchar();
     // Check if there are any remaining elements in the list
     int value;
     int count = 0;

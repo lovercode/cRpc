@@ -29,19 +29,18 @@ public:
      */
     void Enqueue(const T &value) {
         // h 1 2 3
-        Node *newNode = new Node(value);
-        newNode->next = nullptr;
+        Node* newNode = new Node(value);
         Node* tailPtr;
-        while (true){
+        while (true) {
             tailPtr = tail.load();
-            Node* nextPtr = tailPtr->next;
-            if (tailPtr != tail.load()){
+            Node* nextPtr = tailPtr->next.load();
+            if (tailPtr != tail.load()) {
                 continue;
             }
-            if (nextPtr != nullptr){
+            if (nextPtr != nullptr) {
                 continue;
             }
-            if (tailPtr->next.compare_exchange_strong(nextPtr, newNode)){
+            if (tailPtr->next.compare_exchange_strong(nextPtr, newNode)) {
                 break;
             }
         }

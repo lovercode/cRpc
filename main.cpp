@@ -2,48 +2,48 @@
 #include <iostream>
 #include <thread>
 #include <vector>
+#include <atomic>
+std::atomic<int> count(0);
+std::atomic<int> incount(0);
 
 const int NUM_THREADS = 4;
 const int NUM_OPERATIONS = 1000000;
 
 void enqueue_test(LockFreeList<int>& list, int index) {
     for (int i = 0; i < NUM_OPERATIONS; ++i) {
-        list.Enqueue(index*1000000 + i);
+        list.Enqueue(index*NUM_OPERATIONS + i);
+        incount.fetch_add(1);
     }
-    std::cout<<"end eq"<< std::endl;
 }
 
 void dequeue_test(LockFreeList<int>& list) {
     int value;
     while (list.Dequeue(value)) {
-        // Keep trying until we successfully dequeue a value
-        std::cout << "dq Remaining value: " << value << std::endl;
+        count.fetch_add(1);
     }
-    std::cout<<"end de"<< std::endl;
 }
+
+
 
 int main() {
     LockFreeList<int> list;
-
-    // Create threads for enqueue and dequeue tests
     std::vector<std::thread> threads;
     for (int i = 0; i < NUM_THREADS; ++i) {
         threads.emplace_back(enqueue_test, std::ref(list), i);
     }
-//    threads.emplace_back(dequeue_test, std::ref(list));
-    // Wait for all threads to finish
+    threads.emplace_back(dequeue_test, std::ref(list));
+
     for (auto& t: threads) {
         t.join();
     }
-    std::cout << "all eq end " << std::endl;
-//    getchar();
-    // Check if there are any remaining elements in the list
-    int value;
-    int count = 0;
-    while (list.Dequeue(value)) {
-        count++;
-//        std::cout << "Remaining value: " << value << std::endl;
-    }
-        std::cout << "Remaining value: " << count << std::endl;
+
+//    threads.clear();
+//    threads.emplace_back(dequeue_test, std::ref(list));
+//    threads.emplace_back(dequeue_test, std::ref(list));
+//    for (auto& t: threads) {
+//        t.join();
+//    }
+//    dequeue_test(list);
+    std::cout << "all in: " << incount.load() << " all out: " << count.load() << std::endl;
     return 0;
 }

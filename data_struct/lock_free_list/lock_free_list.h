@@ -28,7 +28,6 @@ public:
      * https://www.cs.rochester.edu/research/synchronization/pseudocode/queues.html
      */
     void Enqueue(const T &value) {
-        // h 1 2 3
         Node* newNode = new Node(value);
         Node* tailPtr;
         while (true) {
@@ -48,15 +47,24 @@ public:
     }
 
     bool Dequeue(T &output) {
-        Node *prevHead;
-        do {
-            prevHead = head.load();
-            if (prevHead->next.load() == nullptr) {
+        Node *headPtr = head.load();
+        Node *dequeuePtr;
+        Node *nextPtr;
+        while (true){
+            dequeuePtr = headPtr->next.load();
+            if (dequeuePtr == nullptr){
                 return false;
             }
-        } while (!head.compare_exchange_weak(prevHead, prevHead->next.load()));
-        output = prevHead->next.load()->value;
-        delete prevHead;
+            if (headPtr->next != dequeuePtr){
+                continue;
+            }
+            nextPtr = dequeuePtr->next.load();
+            if(headPtr->next.compare_exchange_strong(dequeuePtr, nextPtr)){
+                break;
+            }
+        }
+        output = dequeuePtr->value;
+        delete dequeuePtr;
         return true;
     }
 

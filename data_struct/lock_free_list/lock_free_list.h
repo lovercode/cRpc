@@ -11,10 +11,10 @@ template <typename T>
 class LockFreeList {
 public:
     LockFreeList() {
-        head = new Node();
-        pre = head.load();
-        tail = new Node();
-        head.load()->next.store(tail.load());
+        Node* node = new Node();
+        node->next = nullptr;
+        head.store(node);
+        tail.store(node);
     }
 
     ~LockFreeList() {
@@ -24,23 +24,35 @@ public:
         delete head.load();
     }
 
+    /*
+     * https://www.cs.rochester.edu/research/synchronization/pseudocode/queues.html
+     */
     void Enqueue(const T &value) {
         // h 1 2 3
         Node *newNode = new Node(value);
-        newNode->next.store(tail.load());
-        Node *prevTail;
-        Node *tailP = tail.load();
-        do {
-            prevTail = pre.load();
-        } while (!prevTail->next.compare_exchange_weak(tailP, newNode));
-        pre.compare_exchange_strong(prevTail, newNode);
+        newNode->next = nullptr;
+        Node* tailPtr;
+        while (true){
+            tailPtr = tail.load();
+            Node* nextPtr = tailPtr->next;
+            if (tailPtr != tail.load()){
+                continue;
+            }
+            if (nextPtr != nullptr){
+                continue;
+            }
+            if (tail.load()->next.compare_exchange_strong(nextPtr, newNode)){
+                break;
+            }
+        }
+        tail.compare_exchange_strong(tailPtr, newNode);
     }
 
     bool Dequeue(T &output) {
         Node *prevHead;
         do {
             prevHead = head.load();
-            if (prevHead->next.load() == tail.load()) {
+            if (prevHead->next.load() == nullptr) {
                 return false;
             }
         } while (!head.compare_exchange_weak(prevHead, prevHead->next.load()));
@@ -58,7 +70,6 @@ private:
 
     std::atomic<Node *> head;
     std::atomic<Node *> tail;
-    std::atomic<Node *> pre;
 };
 
 #endif //CRPC_LOCK_FREE_LIST_H

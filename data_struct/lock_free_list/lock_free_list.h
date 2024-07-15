@@ -41,7 +41,7 @@ public:
             if (nextPtr != nullptr){
                 continue;
             }
-            if (tail.load()->next.compare_exchange_strong(nextPtr, newNode)){
+            if (tailPtr->next.compare_exchange_strong(nextPtr, newNode)){
                 break;
             }
         }

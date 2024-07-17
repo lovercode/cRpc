@@ -151,12 +151,11 @@ public:
             if (tailPtr != tail.load()){
                 continue;
             }
-            if (nextPtr == nullptr){
-                if (tail.load()->next.compare_exchange_strong(nextPtr, node)){
-                    break;
-                }
-            } else{
-                tail.compare_exchange_strong(tailPtr, nextPtr);
+            if (nextPtr != nullptr){
+                continue;
+            }
+            if (tail.load()->next.compare_exchange_strong(nextPtr, node)){
+                break;
             }
         }
         tail.compare_exchange_strong(tailPtr, node);
@@ -210,25 +209,19 @@ public:
      */
     bool Dequeue(T &output) {
         Node *headPtr;
-        Node *tailPtr;
         Node *nextPtr;
         while (true){
             headPtr = head.load();
-            tailPtr = tail.load();
             nextPtr = headPtr->next.load();
             if (headPtr != head.load()){
                 continue;
             }
-            if (headPtr == tailPtr){
-                if (nextPtr == nullptr){
-                    return false;
-                }
-                tail.compare_exchange_strong(tailPtr, nextPtr);
-            }else{
-                output = nextPtr->value;
-                if (head.compare_exchange_strong(headPtr, nextPtr)){
-                    break;
-                }
+            if (nextPtr == nullptr){
+                return false;
+            }
+            output = nextPtr->value;
+            if (head.compare_exchange_strong(headPtr, nextPtr)){
+                break;
             }
         }
         delete headPtr;
